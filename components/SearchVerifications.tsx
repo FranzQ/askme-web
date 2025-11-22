@@ -106,11 +106,6 @@ export function SearchVerifications() {
   return (
     <div>
       <form onSubmit={handleSearch} className="mb-12">
-        <div className="mb-6">
-          <p className="text-base text-gray-600 leading-relaxed">
-            See who has verified fields for an ENS name. Each field shows how many verifiers confirmed it.
-          </p>
-        </div>
         <div className="flex gap-3">
           <input
             type="text"
