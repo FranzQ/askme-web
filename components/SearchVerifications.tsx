@@ -105,24 +105,24 @@ export function SearchVerifications() {
 
   return (
     <div>
-      <form onSubmit={handleSearch} className="mb-8">
-        <div className="mb-2">
-          <p className="text-sm text-gray-600">
+      <form onSubmit={handleSearch} className="mb-12">
+        <div className="mb-6">
+          <p className="text-base text-gray-600 leading-relaxed">
             See who has verified fields for an ENS name. Each field shows how many verifiers confirmed it.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
             type="text"
             value={ensName}
             onChange={(e) => setEnsName(e.target.value)}
             placeholder="Enter ENS name (e.g., example.eth)"
-            className="flex-1 px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 px-5 py-3.5 border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
           />
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-8 py-3.5 bg-black text-white text-base font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Searching...' : 'Search'}
           </button>
@@ -130,80 +130,83 @@ export function SearchVerifications() {
       </form>
 
       {error && (
-        <div className="p-4 bg-red-100 text-red-700 rounded mb-4">
+        <div className="p-5 bg-red-50 border border-red-200 text-red-900 mb-6">
           {error}
         </div>
       )}
 
       {stats && (
-        <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Verification Statistics for <span className="text-blue-600">{ensName}</span>
+        <div className="mb-12 p-8 bg-gray-50 border border-gray-200">
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-3 leading-tight">
+            Verification Statistics
           </h2>
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-lg text-gray-700 mb-2 font-medium">
+            {ensName}
+          </p>
+          <p className="text-base text-gray-600 mb-8 leading-relaxed">
             All verifiers below have verified <strong>this ENS owner's fields</strong>. 
             World ID users are provably human verifiers, while ENS verifiers are institutions/companies.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <div className="text-sm text-gray-600 mb-1">Total Fields Verified</div>
-              <div className="text-3xl font-bold text-blue-600">{stats.totalFields}</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div className="bg-white p-6 border border-gray-200">
+              <div className="text-sm text-gray-600 mb-2 font-medium">Total Fields Verified</div>
+              <div className="text-4xl font-bold text-black">{stats.totalFields}</div>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-indigo-200">
-              <div className="text-sm text-gray-600 mb-1">Total Verifiers</div>
-              <div className="text-3xl font-bold text-indigo-600">{stats.totalVerifiers}</div>
-              <div className="text-xs text-gray-500 mt-1">All verifying same fields</div>
+            <div className="bg-white p-6 border-2 border-gray-900">
+              <div className="text-sm text-gray-600 mb-2 font-medium">Total Verifiers</div>
+              <div className="text-4xl font-bold text-black">{stats.totalVerifiers}</div>
+              <div className="text-xs text-gray-500 mt-2">All verifying same fields</div>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-amber-200">
-              <div className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+            <div className="bg-white p-6 border border-amber-200">
+              <div className="text-sm text-gray-600 mb-2 font-medium flex items-center gap-2">
                 <span>World ID Verifiers</span>
-                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" title="Provably human verifiers">Human</span>
+                <span className="text-xs bg-amber-50 text-amber-900 px-2 py-0.5 border border-amber-200 font-medium" title="Provably human verifiers">Human</span>
               </div>
-              <div className="text-3xl font-bold text-amber-600">{stats.worldVerifiers}</div>
-              <div className="text-xs text-gray-500 mt-1">Individual verifiers</div>
+              <div className="text-4xl font-bold text-amber-600">{stats.worldVerifiers}</div>
+              <div className="text-xs text-gray-500 mt-2">Individual verifiers</div>
             </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-blue-200">
-              <div className="text-sm text-gray-600 mb-1 flex items-center gap-1">
+            <div className="bg-white p-6 border border-blue-200">
+              <div className="text-sm text-gray-600 mb-2 font-medium flex items-center gap-2">
                 <span>ENS Verifiers</span>
-                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="Institutions/Companies">Institution</span>
+                <span className="text-xs bg-blue-50 text-blue-900 px-2 py-0.5 border border-blue-200 font-medium" title="Institutions/Companies">Institution</span>
               </div>
-              <div className="text-3xl font-bold text-blue-600">{stats.ensVerifiers}</div>
-              <div className="text-xs text-gray-500 mt-1">Company/Org verifiers</div>
+              <div className="text-4xl font-bold text-blue-600">{stats.ensVerifiers}</div>
+              <div className="text-xs text-gray-500 mt-2">Company/Org verifiers</div>
             </div>
           </div>
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          <div className="space-y-6">
+            <h3 className="text-2xl font-bold text-black mb-1">
               Verifiers by Field
-              <span className="text-sm font-normal text-gray-600 ml-2">
-                (All verifying {ensName}'s fields)
-              </span>
             </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              All verifying {ensName}'s fields
+            </p>
             {Object.entries(stats.byField).map(([field, fieldStats]) => {
               const worldCount = fieldStats.verifiers.filter(v => v.verifierType === 'world').length
               const ensCount = fieldStats.verifiers.filter(v => v.verifierType === 'ens').length
               
               return (
-              <div key={field} className="bg-white p-4 rounded-lg border border-gray-200">
-                <div className="flex justify-between items-center mb-3">
+              <div key={field} className="bg-white p-6 border border-gray-200">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h4 className="text-lg font-semibold capitalize text-gray-900">
+                    <h4 className="text-xl font-bold capitalize text-black mb-1">
                       {field.replace('_', ' ')}
                     </h4>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm text-gray-600">
                       Verified by {fieldStats.count} {fieldStats.count === 1 ? 'verifier' : 'verifiers'} 
                       {' '}({worldCount} World ID, {ensCount} ENS)
                     </p>
                   </div>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                  <span className="px-4 py-1.5 bg-black text-white text-sm font-medium">
                     {fieldStats.count} {fieldStats.count === 1 ? 'verifier' : 'verifiers'}
                   </span>
                 </div>
                 <div className="space-y-2">
                   {fieldStats.verifiers.map((verifier, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-gray-900">
+                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm font-medium text-black">
                           {verifier.ensName || (verifier.verifierType === 'world' 
                             ? `World ID: ${verifier.verifierId.slice(0, 8)}...${verifier.verifierId.slice(-6)}`
                             : `${verifier.verifierId.slice(0, 6)}...${verifier.verifierId.slice(-4)}`)}
@@ -244,22 +247,22 @@ export function SearchVerifications() {
       )}
 
       {verifications.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Detailed Verifications</h2>
+        <div className="space-y-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-black mb-6">Detailed Verifications</h2>
           {Object.keys(activeByField).map((field) => {
             const active = activeByField[field]
             const revoked = revokedByField[field] || []
             const fieldStats = stats?.byField[field]
             
             return (
-              <div key={field} className="border rounded p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold capitalize text-gray-900">
+              <div key={field} className="border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-2xl font-bold capitalize text-black">
                     {field.replace('_', ' ')}
                   </h3>
                   {fieldStats && (
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                      <span className="px-4 py-1.5 bg-green-50 text-green-900 border border-green-200 text-sm font-medium">
                         {fieldStats.count} {fieldStats.count === 1 ? 'verifier' : 'verifiers'} verified this
                       </span>
                     </div>
@@ -267,11 +270,11 @@ export function SearchVerifications() {
                 </div>
 
                 {active.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2 text-green-700">Active Verifications</h4>
-                    <div className="space-y-2">
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 text-green-900 text-base">Active Verifications</h4>
+                    <div className="space-y-3">
                       {active.map((v) => (
-                        <div key={v.id} className="p-3 bg-green-50 rounded">
+                        <div key={v.id} className="p-4 bg-green-50 border border-green-100">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -359,10 +362,10 @@ export function SearchVerifications() {
 
                 {revoked.length > 0 && (
                   <div>
-                    <h4 className="font-medium mb-2 text-gray-600">Revoked/Invalid</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold mb-3 text-gray-700 text-base">Revoked/Invalid</h4>
+                    <div className="space-y-3">
                       {revoked.map((v) => (
-                        <div key={v.id} className="p-3 bg-gray-50 rounded">
+                        <div key={v.id} className="p-4 bg-gray-50 border border-gray-100">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <p className="font-medium">
@@ -391,7 +394,7 @@ export function SearchVerifications() {
       )}
 
       {verifications.length === 0 && !loading && ensName && (
-        <p className="text-gray-600">No verifications found for {ensName}</p>
+        <p className="text-lg text-gray-600">No verifications found for {ensName}</p>
       )}
     </div>
   )

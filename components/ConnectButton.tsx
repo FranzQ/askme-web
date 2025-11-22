@@ -14,16 +14,16 @@ export function ConnectButton() {
 
   if (isConnected) {
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-end gap-3">
         <div className="flex flex-col items-end">
           {ensLoading ? (
-            <span className="text-xs text-gray-500">Loading ENS...</span>
+            <span className="text-sm text-gray-500">Loading ENS...</span>
           ) : ensName ? (
-            <span className="text-sm font-semibold text-gray-900">{ensName}</span>
+            <span className="text-base font-semibold text-black">{ensName}</span>
           ) : (
-            <span className="text-xs text-red-600 font-semibold">No ENS name</span>
+            <span className="text-sm text-red-600 font-medium">No ENS name</span>
           )}
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 font-mono mt-1">
             {address?.slice(0, 6)}...{address?.slice(-4)}
           </span>
         </div>
@@ -31,7 +31,7 @@ export function ConnectButton() {
           <WorldcoinButton />
           <button
             onClick={() => disconnect()}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             Disconnect
           </button>
@@ -46,7 +46,7 @@ export function ConnectButton() {
         <button
           key={connector.uid}
           onClick={() => connect({ connector })}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          className="px-6 py-2.5 bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
         >
           Connect {connector.name}
         </button>

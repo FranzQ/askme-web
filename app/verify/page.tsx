@@ -6,9 +6,7 @@ import { useAccount, useSignTypedData, useEnsName, useSwitchChain, useWalletClie
 import { keccak256, isHexString } from 'viem'
 import { stringToBytes } from 'viem/utils'
 import { baseSepolia, sepolia } from 'wagmi/chains'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ConnectButton } from '@/components/ConnectButton'
 import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit'
 import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
 import { BrowserProvider } from 'ethers'
@@ -415,53 +413,25 @@ export default function VerifyPage() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen p-8 bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-gray-900">Create Verification</h1>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-gray-600">Loading...</p>
+      </div>
     )
   }
 
   if (!isConnected) {
     return (
-      <main className="min-h-screen p-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">Create Verification</h1>
-          <p className="text-red-600">Please connect your wallet to continue.</p>
-          <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">
-            ← Back to Search
-          </Link>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-red-600 text-lg">Please connect your wallet to continue.</p>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen p-8 bg-white">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Create Verification</h1>
-          <ConnectButton />
-        </div>
-        
-        <Link href="/" className="text-blue-600 hover:underline mb-4 inline-block">
-          ← Back to Search
-        </Link>
-
-        {isConnected && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm text-blue-800">
-              <strong>ℹ️ Verification Required:</strong> You must be Worldcoin verified OR own an ENS name to verify ENS fields. 
-              {ensName && <span className="ml-1">✅ You have ENS: {ensName}</span>}
-            </p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-4xl mx-auto px-8 py-16">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Subject ENS Name *
             </label>
             <input
@@ -469,19 +439,19 @@ export default function VerifyPage() {
               value={subjectEns}
               onChange={(e) => setSubjectEns(e.target.value)}
               placeholder="example.eth"
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Field *
             </label>
             <select
               value={field}
               onChange={(e) => setField(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             >
               <option value="full_name">Full Name</option>
               <option value="dob">Date of Birth</option>
@@ -490,7 +460,7 @@ export default function VerifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Field Value *
             </label>
             <input
@@ -503,44 +473,44 @@ export default function VerifyPage() {
                 }
               }}
               placeholder="Enter the field value to verify"
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-2">
               {requestRevealMode === 'no-reveal' 
                 ? 'Type the value you want to verify. It will be checked against the user\'s hash.'
                 : 'Enter the actual value (e.g., name, DOB, passport ID). It will be normalized and hashed.'}
             </p>
             {requestId && requestRevealMode === 'no-reveal' && !valueVerified && (
-              <div className="mt-2">
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={handleVerifyValue}
                   disabled={verifyingValue || !rawValue.trim()}
-                  className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  className="px-5 py-2.5 bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {verifyingValue ? 'Verifying...' : 'Verify Value'}
                 </button>
               </div>
             )}
             {requestRevealMode === 'no-reveal' && valueVerified && (
-              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+              <div className="mt-3 p-4 bg-green-50 border border-green-200 text-sm text-green-900">
                 ✅ Value verified! You can now create the attestation.
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Computed Field Hash
             </label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <input
                 type="text"
                 value={fieldHash}
                 readOnly
                 placeholder="Hash will appear here..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded font-mono text-sm bg-gray-50 text-gray-900 placeholder-gray-500"
+                className="flex-1 px-5 py-3.5 border border-gray-300 font-mono text-sm bg-gray-50 text-black placeholder-gray-400"
               />
               {fieldHash && (
                 <button
@@ -550,7 +520,7 @@ export default function VerifyPage() {
                     setCopied(true)
                     setTimeout(() => setCopied(false), 2000)
                   }}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm"
+                  className="px-5 py-3.5 bg-gray-200 hover:bg-gray-300 text-sm font-medium transition-colors"
                 >
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
@@ -559,7 +529,7 @@ export default function VerifyPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Method URL (optional)
             </label>
             <input
@@ -567,46 +537,46 @@ export default function VerifyPage() {
               value={methodUrl}
               onChange={(e) => setMethodUrl(e.target.value)}
               placeholder="https://example.com/verification-process"
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Expires At (optional, defaults to 1 year)
             </label>
             <input
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             />
           </div>
 
           {error && (
-            <div className="p-4 bg-red-100 text-red-700 rounded">
+            <div className="p-5 bg-red-50 border border-red-200 text-red-900">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="p-4 bg-green-100 text-green-700 rounded">
+            <div className="p-5 bg-green-50 border border-green-200 text-green-900">
               {success}
             </div>
           )}
 
-          <div className="p-4 bg-blue-50 rounded border border-blue-200">
+          <div className="p-5 bg-blue-50 border border-blue-200">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={createOnChain}
                 onChange={(e) => setCreateOnChain(e.target.checked)}
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-black"
               />
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold text-blue-900">Create On-Chain Attestation on Base</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 text-xs font-medium">
                     Recommended
                   </span>
                 </div>
@@ -621,37 +591,37 @@ export default function VerifyPage() {
           <button
             type="submit"
             disabled={loading || !ensName || (requestRevealMode === 'no-reveal' && !valueVerified)}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-3.5 bg-black text-white text-base font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Signing & Submitting...' : 'Attest with ENS'}
           </button>
         </form>
 
         {WORLDCOIN_APP_ID && WORLDCOIN_APP_ID !== 'app_staging_...' && (
-          <div className="mt-8 p-6 border-t border-gray-200">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Or Verify with World ID</h3>
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="mt-12 pt-12 border-t border-gray-200">
+            <h3 className="text-2xl font-bold mb-4 text-black">Or Verify with World ID</h3>
+            <p className="text-base text-gray-700 mb-6">
               <strong>World ID users (individuals):</strong> If you're verified with World ID, you can verify ENS fields without needing an ENS name yourself.
             </p>
             
             {!subjectEns || !fieldHash ? (
-              <p className="text-sm text-gray-500 italic">
+              <p className="text-base text-gray-600 italic">
                 Please enter Subject ENS and compute fieldHash above first.
               </p>
             ) : (
               <>
-                <div className="mb-4 p-4 bg-blue-50 rounded border border-blue-200">
+                <div className="mb-6 p-5 bg-blue-50 border border-blue-200">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={createOnChain}
                       onChange={(e) => setCreateOnChain(e.target.checked)}
-                      className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="mt-1 w-4 h-4 text-blue-600 border-gray-300 focus:ring-black"
                     />
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <span className="font-semibold text-blue-900">Create On-Chain Attestation on Base</span>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 text-xs font-medium">
                           Recommended
                         </span>
                       </div>
@@ -767,7 +737,7 @@ export default function VerifyPage() {
                       type="button"
                       onClick={open}
                       disabled={worldVerifying}
-                      className="w-full px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-6 py-3.5 bg-amber-600 text-white text-base font-medium hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {worldVerifying ? 'Verifying...' : 'Verify with World ID'}
                     </button>
@@ -777,8 +747,7 @@ export default function VerifyPage() {
             )}
           </div>
         )}
-      </div>
-    </main>
+    </div>
   )
 }
 

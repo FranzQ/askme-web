@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useAccount, useSwitchChain, useWalletClient } from 'wagmi'
 import { baseSepolia } from 'wagmi/chains'
 import Link from 'next/link'
-import { ConnectButton } from '@/components/ConnectButton'
 import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
 import { BrowserProvider } from 'ethers'
 
@@ -190,26 +189,17 @@ export default function MinePage() {
 
   if (!isConnected) {
     return (
-      <main className="min-h-screen p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">My Verifications</h1>
-          <p className="text-red-600">Please connect your wallet to view your verifications.</p>
-          <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">
-            ← Back to Search
-          </Link>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-red-600 text-lg">Please connect your wallet to view your verifications.</p>
+      </div>
     )
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen p-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">My Verifications</h1>
-          <p>Loading...</p>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-gray-600">Loading...</p>
+      </div>
     )
   }
 
@@ -220,70 +210,68 @@ export default function MinePage() {
   const completedRequests = requests.filter(r => r.status === 'completed' || r.status === 'rejected' || r.status === 'expired')
 
   return (
-    <main className="min-h-screen p-8 bg-white">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">My Verifications</h1>
-          <ConnectButton />
-        </div>
-        
-        <Link href="/" className="text-blue-600 hover:underline mb-4 inline-block">
-          ← Back to Search
-        </Link>
-
-        <div className="mb-6 flex gap-2 border-b">
+    <div className="max-w-4xl mx-auto px-8 py-16">
+        <div className="mb-8 flex gap-8 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('verifications')}
-            className={`px-4 py-2 ${activeTab === 'verifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            className={`px-1 py-4 text-base font-medium transition-colors ${
+              activeTab === 'verifications' 
+                ? 'border-b-2 border-black text-black' 
+                : 'text-gray-600 hover:text-black border-b-2 border-transparent'
+            }`}
           >
             Verifications ({verifications.length})
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2 ${activeTab === 'requests' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+            className={`px-1 py-4 text-base font-medium transition-colors ${
+              activeTab === 'requests' 
+                ? 'border-b-2 border-black text-black' 
+                : 'text-gray-600 hover:text-black border-b-2 border-transparent'
+            }`}
           >
             Requests ({requests.length})
           </button>
         </div>
 
         {activeTab === 'requests' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {pendingRequests.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-4">Pending/Approved ({pendingRequests.length})</h2>
+                <h2 className="text-3xl font-bold mb-6 text-black">Pending/Approved ({pendingRequests.length})</h2>
                 <div className="space-y-4">
                   {pendingRequests.map((r) => (
-                    <div key={r.id} className="p-4 border rounded">
+                    <div key={r.id} className="p-5 border border-gray-200">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-semibold">{r.verifiedEns}</p>
-                          <p className="text-sm text-gray-600">Field: {r.field}</p>
+                          <p className="font-bold text-lg text-black mb-1">{r.verifiedEns}</p>
+                          <p className="text-sm text-gray-600 mb-2">Field: {r.field}</p>
                           <p className="text-xs text-gray-500">
                             Requested: {new Date(r.requestedAt).toLocaleString()}
                           </p>
                           {r.approvedAt && (
-                            <p className="text-xs text-green-600">
+                            <p className="text-xs text-green-600 mt-1">
                               Approved: {new Date(r.approvedAt).toLocaleString()}
                             </p>
                           )}
                           {r.expiresAt && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 mt-1">
                               Expires: {new Date(r.expiresAt).toLocaleString()}
                             </p>
                           )}
                         </div>
                         <div className="flex flex-col gap-2">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            r.status === 'approved' ? 'bg-green-200 text-green-800' :
-                            r.status === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                            'bg-gray-200 text-gray-800'
+                          <span className={`px-3 py-1.5 text-xs font-medium ${
+                            r.status === 'approved' ? 'bg-green-50 text-green-900 border border-green-200' :
+                            r.status === 'pending' ? 'bg-yellow-50 text-yellow-900 border border-yellow-200' :
+                            'bg-gray-50 text-gray-900 border border-gray-200'
                           }`}>
                             {r.status}
                           </span>
                           {r.status === 'approved' && (
                             <Link
                               href={`/verify?requestId=${r.id}`}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 text-center"
+                              className="px-4 py-1.5 bg-black text-white text-xs font-medium hover:bg-gray-800 text-center transition-colors"
                             >
                               Verify Now
                             </Link>
@@ -298,12 +286,12 @@ export default function MinePage() {
 
             {completedRequests.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-4">Completed ({completedRequests.length})</h2>
+                <h2 className="text-3xl font-bold mb-6 text-black">Completed ({completedRequests.length})</h2>
                 <div className="space-y-4">
                   {completedRequests.map((r) => (
-                    <div key={r.id} className="p-4 border rounded opacity-60">
-                      <p className="font-semibold">{r.verifiedEns}</p>
-                      <p className="text-sm text-gray-600">Field: {r.field}</p>
+                    <div key={r.id} className="p-5 border border-gray-200 opacity-60">
+                      <p className="font-bold text-lg text-black mb-1">{r.verifiedEns}</p>
+                      <p className="text-sm text-gray-600 mb-2">Field: {r.field}</p>
                       <p className="text-xs text-gray-500">
                         Status: {r.status} • {new Date(r.requestedAt).toLocaleString()}
                       </p>
@@ -314,26 +302,26 @@ export default function MinePage() {
             )}
 
             {requests.length === 0 && (
-              <p className="text-gray-500">No requests found</p>
+              <p className="text-lg text-gray-500">No requests found</p>
             )}
           </div>
         )}
 
         {activeTab === 'verifications' && (
           <>
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Active ({activeVerifications.length})</h2>
+            <div className="mb-12">
+              <h2 className="text-3xl font-bold mb-6 text-black">Active ({activeVerifications.length})</h2>
               {activeVerifications.length === 0 ? (
-                <p className="text-gray-500">No active verifications</p>
+                <p className="text-lg text-gray-500">No active verifications</p>
               ) : (
                 <div className="space-y-4">
                   {activeVerifications.map((v) => (
-                    <div key={v.id} className="p-4 border rounded">
+                    <div key={v.id} className="p-5 border border-gray-200">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">{v.verifiedEns}</p>
-                          <p className="text-sm text-gray-600">Field: {v.field}</p>
-                          <p className="text-xs font-mono text-gray-500">{v.valueHash}</p>
+                        <div className="flex-1">
+                          <p className="font-bold text-lg text-black mb-1">{v.verifiedEns}</p>
+                          <p className="text-sm text-gray-600 mb-2">Field: {v.field}</p>
+                          <p className="text-xs font-mono text-gray-500 mb-2">{v.valueHash}</p>
                           <p className="text-xs text-gray-500">
                             Issued: {new Date(v.issuedAt).toLocaleString()}
                           </p>
@@ -389,7 +377,7 @@ export default function MinePage() {
                           <button
                             onClick={() => handleRevoke(v.id)}
                             disabled={revoking === v.id}
-                            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-sm"
+                            className="px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
                           >
                             {revoking === v.id ? 'Revoking...' : 'Revoke'}
                           </button>
@@ -402,16 +390,16 @@ export default function MinePage() {
             </div>
 
             <div>
-              <h2 className="text-2xl font-semibold mb-4">Revoked ({revokedVerifications.length})</h2>
+              <h2 className="text-3xl font-bold mb-6 text-black">Revoked ({revokedVerifications.length})</h2>
               {revokedVerifications.length === 0 ? (
-                <p className="text-gray-500">No revoked verifications</p>
+                <p className="text-lg text-gray-500">No revoked verifications</p>
               ) : (
                 <div className="space-y-4">
                   {revokedVerifications.map((v) => (
-                    <div key={v.id} className="p-4 border rounded opacity-60">
-                      <p className="font-semibold">{v.verifiedEns}</p>
-                      <p className="text-sm text-gray-600">Field: {v.field}</p>
-                      <p className="text-xs font-mono text-gray-500">{v.valueHash}</p>
+                    <div key={v.id} className="p-5 border border-gray-200 opacity-60">
+                      <p className="font-bold text-lg text-black mb-1">{v.verifiedEns}</p>
+                      <p className="text-sm text-gray-600 mb-2">Field: {v.field}</p>
+                      <p className="text-xs font-mono text-gray-500 mb-2">{v.valueHash}</p>
                       <p className="text-xs text-gray-500">
                         Issued: {new Date(v.issuedAt).toLocaleString()}
                       </p>
@@ -422,8 +410,7 @@ export default function MinePage() {
             </div>
           </>
         )}
-      </div>
-    </main>
+    </div>
   )
 }
 

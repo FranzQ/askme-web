@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAccount, useEnsName } from 'wagmi'
-import Link from 'next/link'
-import { ConnectButton } from '@/components/ConnectButton'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -75,53 +73,25 @@ export default function RequestPage() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen p-8 bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-gray-900">Request Verification</h1>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-gray-600">Loading...</p>
+      </div>
     )
   }
 
   if (!isConnected) {
     return (
-      <main className="min-h-screen p-8 bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-gray-900">Request Verification</h1>
-          <p className="text-red-600">Please connect your wallet to continue.</p>
-          <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">
-            ← Back to Search
-          </Link>
-        </div>
-      </main>
+      <div className="max-w-4xl mx-auto px-8 py-16">
+        <p className="text-red-600 text-lg">Please connect your wallet to continue.</p>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen p-8 bg-white">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Request Verification</h1>
-          <ConnectButton />
-        </div>
-        
-        <Link href="/" className="text-blue-600 hover:underline mb-4 inline-block">
-          ← Back to Search
-        </Link>
-
-        {isConnected && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
-            <p className="text-sm text-blue-800">
-              <strong>ℹ️ Verification Required:</strong> You must be Worldcoin verified OR own an ENS name to request verifications.
-              {ensName && <span className="ml-1">✅ You have ENS: {ensName}</span>}
-            </p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-4xl mx-auto px-8 py-16">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Subject ENS Name *
             </label>
             <input
@@ -129,22 +99,22 @@ export default function RequestPage() {
               value={subjectEns}
               onChange={(e) => setSubjectEns(e.target.value)}
               placeholder="example.eth"
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-600 mt-2">
               The ENS name of the user you want to verify
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-base font-medium mb-2 text-black">
               Field to Verify *
             </label>
             <select
               value={field}
               onChange={(e) => setField(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-5 py-3.5 border border-gray-300 bg-white text-base text-black focus:outline-none focus:ring-2 focus:ring-black focus:border-black transition-all"
             >
               <option value="full_name">Full Name</option>
               <option value="dob">Date of Birth</option>
@@ -153,13 +123,13 @@ export default function RequestPage() {
           </div>
 
           {error && (
-            <div className="p-4 bg-red-100 text-red-700 rounded">
+            <div className="p-5 bg-red-50 border border-red-200 text-red-900">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="p-4 bg-green-100 text-green-700 rounded">
+            <div className="p-5 bg-green-50 border border-green-200 text-green-900">
               {success}
             </div>
           )}
@@ -167,15 +137,15 @@ export default function RequestPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-6 py-3.5 bg-black text-white text-base font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Creating Request...' : 'Create Request'}
           </button>
         </form>
 
-        <div className="mt-8 p-4 bg-blue-50 rounded">
-          <h3 className="font-semibold mb-2">How it works:</h3>
-          <ol className="list-decimal list-inside space-y-1 text-sm">
+        <div className="mt-12 p-6 bg-gray-50 border border-gray-200">
+          <h3 className="font-bold text-lg mb-4 text-black">How it works:</h3>
+          <ol className="list-decimal list-inside space-y-2 text-base text-gray-700">
             <li>Create a verification request for a user's ENS name</li>
             <li>The user will see your request in their app</li>
             <li>If approved, you'll get temporary access to the field value</li>
@@ -183,8 +153,7 @@ export default function RequestPage() {
             <li>The value is automatically cleared after attestation or expiry</li>
           </ol>
         </div>
-      </div>
-    </main>
+    </div>
   )
 }
 

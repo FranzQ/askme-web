@@ -45,7 +45,7 @@ export function WorldcoinButton() {
 
   if (verified) {
     return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-sm font-semibold">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-900 text-sm font-medium border border-amber-200">
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
         </svg>
@@ -56,16 +56,16 @@ export function WorldcoinButton() {
 
   if (!WORLDCOIN_APP_ID || WORLDCOIN_APP_ID === 'app_staging_...') {
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <p className="text-xs text-gray-500">
-          Worldcoin App ID not configured. Add NEXT_PUBLIC_WORLDCOIN_APP_ID to your .env file.
+          Worldcoin App ID not configured
         </p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <IDKitWidget
         app_id={WORLDCOIN_APP_ID}
         action="verify-ens"
@@ -77,7 +77,7 @@ export function WorldcoinButton() {
         {({ open }) => (
           <button
             onClick={open}
-            className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50 text-sm font-medium"
+            className="px-4 py-2 bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50 transition-colors"
           >
             Verify with Worldcoin
           </button>
@@ -86,10 +86,7 @@ export function WorldcoinButton() {
       {error && (
         <p className="text-xs text-red-600">{error}</p>
       )}
-      <p className="text-xs text-gray-500">
-        Uses Worldcoin staging environment
-      </p>
-    </div>
+    </>
   )
 }
 
