@@ -123,16 +123,39 @@ export default function MinePage() {
     setCreatingAttestation(verification.id)
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
-        const currentChainId = await walletClient.getChainId()
+        // Check and switch to Base Sepolia if needed
+        let currentChainId = await walletClient.getChainId()
         if (currentChainId !== baseSepolia.id) {
-          await switchChain({ chainId: baseSepolia.id })
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          try {
+            await switchChain({ chainId: baseSepolia.id })
+            // Wait for chain switch to complete
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            // Verify the switch
+            currentChainId = await walletClient.getChainId()
+            if (currentChainId !== baseSepolia.id) {
+              throw new Error('Failed to switch to Base Sepolia. Please switch manually in your wallet.')
+            }
+          } catch (switchError: any) {
+            alert(`Failed to switch to Base Sepolia: ${switchError.message || switchError}`)
+            setCreatingAttestation(null)
+            return
+          }
         }
 
         const provider = new BrowserProvider(window.ethereum)
+        // Wait for provider to be ready
+        await provider.ready
         const signer = await provider.getSigner()
+        
+        // Verify signer is on correct chain
+        const signerChainId = (await signer.provider.getNetwork()).chainId
+        if (Number(signerChainId) !== baseSepolia.id) {
+          throw new Error(`Signer is on chain ${signerChainId}, but Base Sepolia (${baseSepolia.id}) is required`)
+        }
 
-        const EAS_CONTRACT_ADDRESS = '0xC2679fBD37d54388Ce493F1DB75320D236e1815e'
+        // EAS Contract Address on Base Sepolia
+        // Official address from: https://github.com/ethereum-attestation-service/eas-contracts
+        const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021'
         const eas = new EAS(EAS_CONTRACT_ADDRESS)
         eas.connect(signer)
 
@@ -148,8 +171,11 @@ export default function MinePage() {
           { name: 'methodUrl', value: verification.methodUrl || '', type: 'string' },
         ])
 
+        // For off-chain schemas, use zero hash (32 bytes of zeros)
+        const OFF_CHAIN_SCHEMA = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+        
         const tx = await eas.attest({
-          schema: '',
+          schema: OFF_CHAIN_SCHEMA,
           data: {
             recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
             expirationTime: BigInt(0),

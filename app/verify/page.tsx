@@ -82,8 +82,17 @@ export default function VerifyPage() {
               setRawValue(data.value)
               setRequestRevealMode('reveal')
               setValueVerified(true)
+              // Compute fieldHash from the revealed value
+              if (data.value) {
+                const computedHash = computeFieldHash(data.value, data.field)
+                setFieldHash(computedHash)
+              }
+            }).catch(err => {
+              console.error('Error parsing reveal response:', err)
             })
           } else {
+            // Silently handle 400/404 - request might not be approved yet or not reveal mode
+            // This is expected behavior, don't show error
             return fetch(`${API_URL}/api/requests/id/${requestIdParam}`)
               .then(reqRes => {
                 if (!reqRes.ok) return null
@@ -172,68 +181,33 @@ export default function VerifyPage() {
         currentWalletClient = walletClient
       }
 
+      // Switch to Base Sepolia for signing (same chain as EAS attestation, server accepts both)
       let currentChainId: number | undefined
       if (currentWalletClient) {
         currentChainId = await currentWalletClient.getChainId()
       } else {
         currentChainId = chainId
       }
-      if (currentChainId !== sepolia.id) {
+      
+      if (currentChainId !== baseSepolia.id) {
         if (!currentWalletClient) {
           throw new Error('Wallet client not available. Please refresh the page and try again.')
         }
         
         try {
-          try {
-            await switchChain({ chainId: sepolia.id })
-          } catch (switchErr: any) {
-            if (switchErr.message?.includes('rejected') || switchErr.message?.includes('denied') || switchErr.message?.includes('User rejected')) {
-              throw new Error('Chain switch was rejected. Please switch to Sepolia testnet manually in MetaMask and try again.')
-            }
-            throw switchErr
-          }
+          await switchChain({ chainId: baseSepolia.id })
+          await new Promise(resolve => setTimeout(resolve, 2000))
           
-          let retries = 0
-          const maxRetries = 40
-          let switched = false
-          
-          while (retries < maxRetries && !switched) {
-            await new Promise(resolve => setTimeout(resolve, 500))
-            try {
-              if (!currentWalletClient) {
-                currentWalletClient = walletClient
-              }
-              if (currentWalletClient) {
-                const checkChainId = await currentWalletClient.getChainId()
-                if (checkChainId === sepolia.id) {
-                  switched = true
-                  await new Promise(resolve => setTimeout(resolve, 1000))
-                  break
-                }
-              }
-            } catch (err) {
-            }
-            retries++
+          // Verify the switch
+          currentChainId = await currentWalletClient.getChainId()
+          if (currentChainId !== baseSepolia.id) {
+            throw new Error('Failed to switch to Base Sepolia. Please switch manually in your wallet.')
           }
-          
-          if (!currentWalletClient) {
-            currentWalletClient = walletClient
-          }
-          if (!currentWalletClient) {
-            throw new Error('Wallet client not available. Please refresh the page and try again.')
-          }
-          
-          const finalCheckChainId = await currentWalletClient.getChainId()
-          if (finalCheckChainId !== sepolia.id) {
-            throw new Error(`Chain switch did not complete. Current chain: ${finalCheckChainId}, Required: ${sepolia.id}. Please switch to Sepolia testnet manually in MetaMask and try again.`)
-          }
-          
-          currentChainId = finalCheckChainId
         } catch (err: any) {
           if (err.message?.includes('rejected') || err.message?.includes('denied')) {
-            throw err
+            throw new Error('Chain switch was rejected. Please switch to Base Sepolia manually in MetaMask and try again.')
           }
-          throw new Error(`Failed to switch to Sepolia: ${err.message || 'Unknown error'}. Please switch to Sepolia testnet manually in MetaMask and try again.`)
+          throw new Error(`Failed to switch to Base Sepolia: ${err.message || 'Unknown error'}. Please switch manually and try again.`)
         }
       }
 
@@ -248,35 +222,47 @@ export default function VerifyPage() {
         finalChainId = chainId
       }
       
-      if (finalChainId !== sepolia.id) {
-        throw new Error(`Wallet is on chain ${finalChainId}, but Sepolia (${sepolia.id}) is required. Please switch to Sepolia testnet and try again.`)
+      if (finalChainId !== baseSepolia.id) {
+        throw new Error(`Wallet is on chain ${finalChainId}, but Base Sepolia (${baseSepolia.id}) is required. Please switch to Base Sepolia and try again.`)
       }
       
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      const valueHashBytes = fieldHash as `0x${string}`
+      // Ensure fieldHash is set before signing
+      if (!fieldHash || fieldHash === '') {
+        if (rawValue) {
+          const computedHash = computeFieldHash(rawValue, field)
+          setFieldHash(computedHash)
+          // Use computed hash for signing
+          var valueHashBytes = computedHash as `0x${string}`
+        } else {
+          throw new Error('Field hash is required. Please verify the field value first.')
+        }
+      } else {
+        var valueHashBytes = fieldHash as `0x${string}`
+      }
+
+      // Ensure fieldHash is a valid hex string
+      if (!valueHashBytes.startsWith('0x') || valueHashBytes.length !== 66) {
+        throw new Error(`Invalid fieldHash format: ${valueHashBytes}. Expected 0x-prefixed 64-character hex string.`)
+      }
 
       const expiryTimestamp = expiresAt
         ? BigInt(Math.floor(new Date(expiresAt).getTime() / 1000))
         : BigInt(Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60)
 
-      let signingChainId = finalChainId
-      if (currentWalletClient) {
-        signingChainId = await currentWalletClient.getChainId()
-      } else {
-        signingChainId = chainId
-      }
+      // Use Base Sepolia for signature (same chain as EAS attestation, server accepts both)
+      const signatureChainId = baseSepolia.id
       
-      if (signingChainId !== sepolia.id) {
-        throw new Error(`Wallet is on chain ${signingChainId}, but Sepolia (${sepolia.id}) is required. Please switch to Sepolia testnet and try again.`)
-      }
-
       const domain = {
         name: DOMAIN_NAME,
         version: DOMAIN_VERSION,
-        chainId: signingChainId,
+        chainId: signatureChainId, // Use Base Sepolia
         verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
       }
+
+      console.log('Signing with domain:', { ...domain, chainId: signatureChainId })
+      console.log('Current wallet chainId:', finalChainId)
 
       const types = {
         Verification: [
@@ -298,12 +284,16 @@ export default function VerifyPage() {
         expiresAt: expiryTimestamp,
       }
 
+      console.log('Signing message:', message)
+
       const signature = await signTypedDataAsync({
         domain,
         types,
         primaryType: 'Verification',
         message,
       })
+      
+      console.log('Signature created:', signature)
 
       let attestationUid: string | null = null
       let attestationError: string | null = null
@@ -311,33 +301,119 @@ export default function VerifyPage() {
       if (createOnChain) {
         try {
           if (walletClient && typeof window !== 'undefined' && window.ethereum) {
-            const currentChainId = await walletClient.getChainId()
+            // Check and switch to Base Sepolia if needed
+            let currentChainId = await walletClient.getChainId()
             if (currentChainId !== baseSepolia.id) {
-              await switchChain({ chainId: baseSepolia.id })
-              await new Promise(resolve => setTimeout(resolve, 1000))
+              try {
+                await switchChain({ chainId: baseSepolia.id })
+                // Wait for chain switch to complete
+                await new Promise(resolve => setTimeout(resolve, 2000))
+                // Verify the switch
+                currentChainId = await walletClient.getChainId()
+                if (currentChainId !== baseSepolia.id) {
+                  throw new Error('Failed to switch to Base Sepolia. Please switch manually in your wallet.')
+                }
+              } catch (switchError: any) {
+                attestationError = `Failed to switch to Base Sepolia: ${switchError.message || switchError}`
+                throw new Error(attestationError)
+              }
             }
 
             const provider = new BrowserProvider(window.ethereum)
+            // Wait for provider to be ready
+            await provider.ready
             const signer = await provider.getSigner()
+            
+            // Verify signer is on correct chain
+            const signerChainId = (await signer.provider.getNetwork()).chainId
+            if (Number(signerChainId) !== baseSepolia.id) {
+              throw new Error(`Signer is on chain ${signerChainId}, but Base Sepolia (${baseSepolia.id}) is required`)
+            }
 
-            const EAS_CONTRACT_ADDRESS = '0xC2679fBD37d54388Ce493F1DB75320D236e1815e'
+            // EAS Contract Address on Base Sepolia
+            // Official address from: https://github.com/ethereum-attestation-service/eas-contracts
+            const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021'
             const eas = new EAS(EAS_CONTRACT_ADDRESS)
             eas.connect(signer)
 
+            // Ensure all required fields are set
+            if (!ensName || ensName.trim() === '') {
+              throw new Error('ENS name is required for EAS attestation. Please ensure your wallet is connected and you own an ENS name.')
+            }
+
+            if (!subjectEns || subjectEns.trim() === '') {
+              throw new Error('Subject ENS name is required for EAS attestation')
+            }
+
+            if (!field || field.trim() === '') {
+              throw new Error('Field is required for EAS attestation')
+            }
+
+            if (!valueHashBytes || valueHashBytes === '0x' || valueHashBytes.length !== 66) {
+              throw new Error('Invalid fieldHash for EAS attestation')
+            }
+
+            if (!address || address.trim() === '') {
+              throw new Error('Wallet address is required for EAS attestation')
+            }
+
+            // Prepare all values with defaults to avoid empty strings
+            const attestationData = {
+              verifiedEns: subjectEns.toLowerCase().trim(),
+              field: field.trim(),
+              fieldHash: valueHashBytes as `0x${string}`,
+              verifierType: 'ens',
+              verifierId: address.toLowerCase().trim(),
+              ensName: ensName.trim(),
+              methodUrl: (methodUrl && methodUrl.trim()) || 'https://askme.eth',
+            }
+
+            // Final validation - ensure no empty strings
+            if (!attestationData.verifiedEns || !attestationData.field || !attestationData.fieldHash || 
+                !attestationData.verifierId || !attestationData.ensName || !attestationData.methodUrl) {
+              console.error('Validation failed - missing fields:', attestationData)
+              throw new Error('Missing required fields for EAS attestation')
+            }
+
+            console.log('EAS attestation data:', attestationData)
+
+            // Log each field before encoding to debug
+            console.log('Encoding EAS data with values:', {
+              verifiedEns: attestationData.verifiedEns,
+              field: attestationData.field,
+              fieldHash: attestationData.fieldHash,
+              verifierType: attestationData.verifierType,
+              verifierId: attestationData.verifierId,
+              ensName: attestationData.ensName,
+              methodUrl: attestationData.methodUrl,
+            })
+
             const schema = 'string verifiedEns,string field,bytes32 fieldHash,string verifierType,string verifierId,string ensName,string methodUrl'
             const schemaEncoder = new SchemaEncoder(schema)
-            const encodedData = schemaEncoder.encodeData([
-              { name: 'verifiedEns', value: subjectEns.toLowerCase(), type: 'string' },
-              { name: 'field', value: field, type: 'string' },
-              { name: 'fieldHash', value: fieldHash, type: 'bytes32' },
-              { name: 'verifierType', value: 'ens', type: 'string' },
-              { name: 'verifierId', value: address.toLowerCase(), type: 'string' },
-              { name: 'ensName', value: ensName || '', type: 'string' },
-              { name: 'methodUrl', value: methodUrl || '', type: 'string' },
-            ])
+            
+            let encodedData: string
+            try {
+              encodedData = schemaEncoder.encodeData([
+                { name: 'verifiedEns', value: attestationData.verifiedEns, type: 'string' },
+                { name: 'field', value: attestationData.field, type: 'string' },
+                { name: 'fieldHash', value: attestationData.fieldHash, type: 'bytes32' },
+                { name: 'verifierType', value: attestationData.verifierType, type: 'string' },
+                { name: 'verifierId', value: attestationData.verifierId, type: 'string' },
+                { name: 'ensName', value: attestationData.ensName, type: 'string' },
+                { name: 'methodUrl', value: attestationData.methodUrl, type: 'string' },
+              ])
+              console.log('EAS data encoded successfully')
+            } catch (encodeError: any) {
+              console.error('Error encoding EAS data:', encodeError)
+              console.error('Field values that failed:', attestationData)
+              throw new Error(`Failed to encode EAS data: ${encodeError.message}`)
+            }
 
+            // For off-chain schemas, use zero hash (32 bytes of zeros)
+            const OFF_CHAIN_SCHEMA = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+            
             const tx = await eas.attest({
-              schema: '',
+              schema: OFF_CHAIN_SCHEMA,
               data: {
                 recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
                 expirationTime: BigInt(0),
@@ -368,7 +444,7 @@ export default function VerifyPage() {
           field,
           fieldHash: fieldHash,
           methodUrl: methodUrl || undefined,
-          expiresAt: expiresAt || undefined,
+          expiresAt: expiryTimestamp.toString(), // Send the actual BigInt timestamp that was signed
           sig: signature,
           attestationUid: attestationUid || undefined,
         }),
@@ -656,7 +732,9 @@ export default function VerifyPage() {
                           const provider = new BrowserProvider(window.ethereum)
                           const signer = await provider.getSigner()
 
-                          const EAS_CONTRACT_ADDRESS = '0xC2679fBD37d54388Ce493F1DB75320D236e1815e'
+                          // EAS Contract Address on Base Sepolia
+                          // Official address from: https://github.com/ethereum-attestation-service/eas-contracts
+                          const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021'
                           const eas = new EAS(EAS_CONTRACT_ADDRESS)
                           eas.connect(signer)
 
@@ -672,8 +750,11 @@ export default function VerifyPage() {
                             { name: 'methodUrl', value: methodUrl || '', type: 'string' },
                           ])
 
+                          // For off-chain schemas, use zero hash (32 bytes of zeros)
+                          const OFF_CHAIN_SCHEMA = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+                          
                           const tx = await eas.attest({
-                            schema: '',
+                            schema: OFF_CHAIN_SCHEMA,
                             data: {
                               recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
                               expirationTime: BigInt(0),

@@ -40,18 +40,24 @@ export function ConnectButton() {
     )
   }
 
+  // Filter to only show MetaMask connector
+  const metaMaskConnector = connectors.find(c => c.id === 'metaMask' || c.name === 'MetaMask')
+  
+  if (!metaMaskConnector) {
+    return (
+      <div className="text-sm text-gray-500">
+        No wallet connector available
+      </div>
+    )
+  }
+
   return (
-    <div className="flex gap-2">
-      {connectors.map((connector) => (
-        <button
-          key={connector.uid}
-          onClick={() => connect({ connector })}
-          className="px-6 py-2.5 bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
-        >
-          Connect {connector.name}
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={() => connect({ connector: metaMaskConnector })}
+      className="px-6 py-2.5 bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+    >
+      Connect MetaMask
+    </button>
   )
 }
 
