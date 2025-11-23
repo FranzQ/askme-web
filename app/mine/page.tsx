@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, useSwitchChain, useWalletClient } from 'wagmi'
-import { baseSepolia } from 'wagmi/chains'
+import { useAccount, useSwitchChain, useWalletClient, useEnsName } from 'wagmi'
+import { baseSepolia, sepolia } from 'wagmi/chains'
 import Link from 'next/link'
-import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
+import { EAS, SchemaEncoder, SchemaRegistry } from '@ethereum-attestation-service/eas-sdk'
 import { BrowserProvider } from 'ethers'
+import { isHexString } from 'viem'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -13,7 +14,8 @@ interface Verification {
   id: string
   verifiedEns: string
   field: string
-  valueHash: string
+  valueHash: string // Legacy field name, but server returns fieldHash
+  fieldHash?: string // Actual fieldHash from server
   methodUrl: string | null
   issuedAt: string
   expiresAt: string
@@ -23,6 +25,9 @@ interface Verification {
   isValid?: boolean
   isExpired?: boolean
   isEnsValid?: boolean
+  verifierId?: string
+  verifierType?: string
+  ensName?: string | null // ENS name of the verifier
 }
 
 interface VerificationRequest {
@@ -43,6 +48,10 @@ export default function MinePage() {
   const { address, isConnected } = useAccount()
   const { switchChain } = useSwitchChain()
   const { data: walletClient } = useWalletClient()
+  const { data: ensName } = useEnsName({ 
+    address: address as `0x${string}` | undefined,
+    chainId: sepolia.id // ENS names are on Sepolia
+  })
   const [verifications, setVerifications] = useState<Verification[]>([])
   const [requests, setRequests] = useState<VerificationRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -87,17 +96,21 @@ export default function MinePage() {
     }
   }
 
-  const handleRevoke = async (id: string) => {
+  const handleRevoke = async (verification: Verification) => {
     if (!address) return
     
-    setRevoking(id)
+    // Use verifierId and verifierType from the verification object, or fallback to address and 'ens'
+    const verifierId = verification.verifierId || address.toLowerCase()
+    const verifierType = verification.verifierType || 'ens'
+    
+    setRevoking(verification.id)
     try {
-      const response = await fetch(`${API_URL}/api/verifications/${id}/revoke`, {
+      const response = await fetch(`${API_URL}/api/verifications/${verification.id}/revoke`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ verifierAddress: address }),
+        body: JSON.stringify({ verifierId, verifierType }),
       })
 
       if (response.ok) {
@@ -159,23 +172,95 @@ export default function MinePage() {
         const eas = new EAS(EAS_CONTRACT_ADDRESS)
         eas.connect(signer)
 
+        // Use fieldHash if available, otherwise fallback to valueHash (for backward compatibility)
+        let fieldHash = verification.fieldHash || verification.valueHash
+        if (!fieldHash) {
+          throw new Error('Missing fieldHash in verification')
+        }
+
+        // Ensure fieldHash is a valid hex string with 0x prefix and 66 characters (0x + 64 hex chars)
+        if (!isHexString(fieldHash)) {
+          throw new Error(`Invalid fieldHash format: ${fieldHash}`)
+        }
+        if (fieldHash.length !== 66) {
+          throw new Error(`Invalid fieldHash length: expected 66 characters (0x + 64 hex), got ${fieldHash.length}`)
+        }
+
+        // Get ENS name from verification object, or from wagmi hook, or throw error
+        const verifierEnsName = verification.ensName || ensName || ''
+        if (!verifierEnsName || verifierEnsName.trim() === '') {
+          throw new Error('Missing ENS name for verifier. Please ensure your wallet has an ENS name on Sepolia.')
+        }
+
+        // Validate all required fields
+        const verifiedEns = verification.verifiedEns.toLowerCase().trim()
+        const field = verification.field.trim()
+        const verifierType = verification.verifierType || 'ens'
+        const verifierId = (verification.verifierId || address || '').toLowerCase().trim()
+        const methodUrl = (verification.methodUrl || 'https://askme.eth').trim()
+
+        if (!verifiedEns || !field || !verifierId || !verifierEnsName || !methodUrl) {
+          throw new Error('Missing required fields for EAS attestation')
+        }
+
+        console.log('Creating EAS attestation with data:', {
+          verifiedEns,
+          field,
+          fieldHash,
+          verifierType,
+          verifierId,
+          ensName: verifierEnsName,
+          methodUrl,
+        })
+
         const schema = 'string verifiedEns,string field,bytes32 fieldHash,string verifierType,string verifierId,string ensName,string methodUrl'
         const schemaEncoder = new SchemaEncoder(schema)
-        const encodedData = schemaEncoder.encodeData([
-          { name: 'verifiedEns', value: verification.verifiedEns.toLowerCase(), type: 'string' },
-          { name: 'field', value: verification.field, type: 'string' },
-          { name: 'fieldHash', value: verification.valueHash, type: 'bytes32' },
-          { name: 'verifierType', value: 'ens', type: 'string' },
-          { name: 'verifierId', value: address.toLowerCase(), type: 'string' },
-          { name: 'ensName', value: '', type: 'string' },
-          { name: 'methodUrl', value: verification.methodUrl || '', type: 'string' },
-        ])
-
-        // For off-chain schemas, use zero hash (32 bytes of zeros)
-        const OFF_CHAIN_SCHEMA = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
         
+        let encodedData: string
+        try {
+          encodedData = schemaEncoder.encodeData([
+            { name: 'verifiedEns', value: verifiedEns, type: 'string' },
+            { name: 'field', value: field, type: 'string' },
+            { name: 'fieldHash', value: fieldHash as `0x${string}`, type: 'bytes32' },
+            { name: 'verifierType', value: verifierType, type: 'string' },
+            { name: 'verifierId', value: verifierId, type: 'string' },
+            { name: 'ensName', value: verifierEnsName.trim(), type: 'string' },
+            { name: 'methodUrl', value: methodUrl, type: 'string' },
+          ])
+          console.log('EAS data encoded successfully')
+        } catch (encodeError: any) {
+          console.error('Error encoding EAS data:', encodeError)
+          throw new Error(`Failed to encode EAS data: ${encodeError.message}`)
+        }
+
+        // Register schema on-chain first, then use it for attestations
+        // Schema Registry address on Base Sepolia
+        const SCHEMA_REGISTRY_ADDRESS = '0x4200000000000000000000000000000000000020'
+        const schemaRegistry = new SchemaRegistry(SCHEMA_REGISTRY_ADDRESS)
+        schemaRegistry.connect(signer)
+
+        // Register the schema (idempotent - will return existing schema if already registered)
+        let schemaUid: string
+        try {
+          const schemaTx = await schemaRegistry.register({
+            schema: schema,
+            resolverAddress: '0x0000000000000000000000000000000000000000' as `0x${string}`, // No resolver for off-chain data
+            revocable: true,
+          })
+          schemaUid = await schemaTx.wait()
+          console.log('Schema registered:', schemaUid)
+        } catch (registerError: any) {
+          // If schema already exists, calculate the UID from the schema string
+          console.warn('Schema registration error (may already exist):', registerError)
+          // Calculate schema UID from the schema string
+          const { keccak256, toUtf8Bytes } = await import('ethers')
+          schemaUid = keccak256(toUtf8Bytes(schema))
+          console.log('Using calculated schema UID:', schemaUid)
+        }
+        
+        // Use the registered schema for on-chain attestation
         const tx = await eas.attest({
-          schema: OFF_CHAIN_SCHEMA,
+          schema: schemaUid as `0x${string}`,
           data: {
             recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
             expirationTime: BigInt(0),
@@ -185,6 +270,7 @@ export default function MinePage() {
         })
 
         const attestationUid = await tx.wait()
+        console.log('EAS attestation created:', attestationUid)
 
         const response = await fetch(`${API_URL}/api/verifications/${verification.id}/attestation`, {
           method: 'POST',
@@ -401,7 +487,7 @@ export default function MinePage() {
                         </div>
                         <div className="flex flex-col gap-2">
                           <button
-                            onClick={() => handleRevoke(v.id)}
+                            onClick={() => handleRevoke(v)}
                             disabled={revoking === v.id}
                             className="px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
                           >

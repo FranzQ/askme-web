@@ -8,7 +8,7 @@ import { stringToBytes } from 'viem/utils'
 import { baseSepolia, sepolia } from 'wagmi/chains'
 import { useSearchParams } from 'next/navigation'
 import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit'
-import { EAS, SchemaEncoder } from '@ethereum-attestation-service/eas-sdk'
+import { EAS, SchemaEncoder, SchemaRegistry } from '@ethereum-attestation-service/eas-sdk'
 import { BrowserProvider } from 'ethers'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
@@ -409,11 +409,34 @@ export default function VerifyPage() {
               throw new Error(`Failed to encode EAS data: ${encodeError.message}`)
             }
 
-            // For off-chain schemas, use zero hash (32 bytes of zeros)
-            const OFF_CHAIN_SCHEMA = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`
+            // Register schema on-chain first, then use it for attestations
+            // Schema Registry address on Base Sepolia
+            const SCHEMA_REGISTRY_ADDRESS = '0x4200000000000000000000000000000000000020'
+            const schemaRegistry = new SchemaRegistry(SCHEMA_REGISTRY_ADDRESS)
+            schemaRegistry.connect(signer)
+
+            // Register the schema (idempotent - will return existing schema if already registered)
+            let schemaUid: string
+            try {
+              const schemaTx = await schemaRegistry.register({
+                schema: schema,
+                resolverAddress: '0x0000000000000000000000000000000000000000' as `0x${string}`, // No resolver for off-chain data
+                revocable: true,
+              })
+              schemaUid = await schemaTx.wait()
+              console.log('Schema registered:', schemaUid)
+            } catch (registerError: any) {
+              // If schema already exists, get the UID from the error or try to fetch it
+              console.warn('Schema registration error (may already exist):', registerError)
+              // Calculate schema UID from the schema string
+              const { keccak256, toUtf8Bytes } = await import('ethers')
+              schemaUid = keccak256(toUtf8Bytes(schema))
+              console.log('Using calculated schema UID:', schemaUid)
+            }
             
+            // Use the registered schema for on-chain attestation
             const tx = await eas.attest({
-              schema: OFF_CHAIN_SCHEMA,
+              schema: schemaUid as `0x${string}`,
               data: {
                 recipient: '0x0000000000000000000000000000000000000000' as `0x${string}`,
                 expirationTime: BigInt(0),
